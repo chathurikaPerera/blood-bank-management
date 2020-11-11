@@ -1,248 +1,120 @@
 <?php
-    session_start();
-    // Check if the user is logged in, if not then redirect him to login page
-    if(!isset($_SESSION["id-5"]) || !isset($_SESSION["loggedin"]) || $_SESSION["loggedin"] !== true){
-    header("location: ../../reg_login.php");
-    exit;
-}
+    //session start
+    require_once "../session.php";
 
-    //$nic = htmlspecialchars($_SESSION["nic"]);
-    require_once "../../config.php";
-    
-    //variable declaration
-    $hosname=$username=$drname=$dis=$add=$data2=$mobile=$mobile2="";
-    
-    if(isset($_POST["submit"]))
-    {
-        
-        $data2=$_SESSION['id-5'];
-        //echo $data2;
+    $nic= $_SESSION["id-5"];
+    $sql = "SELECT * FROM normal_hospital WHERE UserName= '$nic'";
 
-        //prepare statment
-        $sql1="SELECT UserName FROM normal_hospital WHERE UserName = ?";
-        if($stmt=mysqli_prepare($link,$sql1))
-        {
-               
-        mysqli_stmt_bind_param($stmt,"s",$para_username);
-        //set parameters
-        $para_username=trim($_POST["username"]);
-        //execute the prepare statement
-        if(mysqli_stmt_execute($stmt))
-        {
-            //store the result
-            mysqli_stmt_store_result($stmt);
-            if(mysqli_stmt_num_rows($stmt)==1)
-            {
-                $error="This user name is already taken";
-            }
-            else
-            {
-                $username=trim($_POST["username"]);
-            }
-            mysqli_stmt_close($stmt);
-        }
-        
-       
+    $result = mysqli_query($link, $sql);
 
-       }
-        
-        // validate hospital name
-        if(!empty(trim($_POST["hosname"])))
-        {
-            $hosname=trim($_POST["hosname"]);
-        }else{
-            $hos_err= "Enter the Hospital Name";
-        }
-        // validate address
-        if(!empty(trim($_POST["address"])))
-        {
-            $add=trim($_POST["address"]);
-        }else{
-            $add_err= "Enter the Address";
-        }
-        // validate District
-        if(!empty(trim($_POST["district"])))
-        {
-            $dis=trim($_POST["district"]);
-        }else{
-            $dis_err= "Enter the District";
-        }
-        // validate DrName
-        if(!empty(trim($_POST["drname"])))
-        {
-            $drname=trim($_POST["drname"]);
-        }else{
-            $drname_err= "Enter the Doctor Name";
-        }
-        // validate DrName
-        if(!empty(trim($_POST["username"])))
-        {
-            $username=trim($_POST["username"]);
-        }else{
-            $username_err= "Enter the User Name";
-        }
-        //validate user name
-        if(empty(trim($_POST["mobile"])))
-        {
-            $mobile_err="Please enter the telephone number";
-        }
-        else{
-            $mobile=trim($_POST["mobile"]);
-        }
-        $mobile2=trim($_POST["mobile2"]);
-        //prepare update statement
-         $sql="UPDATE normal_hospital SET UserName=?, Name=?, Address=?, District=?, Chief=? WHERE UserName='$data2'";
-        
-         if($stmt=mysqli_prepare($link,$sql))
-         {
-            mysqli_stmt_bind_param($stmt,"sssss",$param_user,$param_name,$param_add,$param_dis,$param_dr);
-            //set parameters
-            $param_user=$username;
-            $param_name=$hosname;
-            $param_add=$add;
-            $param_dis=$dis;
-            $param_dr=$drname;
+    if (mysqli_num_rows($result) > 0) {
+        // output data of each row
+        while($row = mysqli_fetch_assoc($result)) {
 
-            $_SESSION["id-5"]="$username";
-            
-            //execute prepare statement
-            if(mysqli_stmt_execute($stmt))
-            {
-                $sql1= "UPDATE normal_hospital_telephone SET username='$username', TelephoneNo='$mobile' WHERE username='$data2' AND flag='1'";
-                    if (mysqli_query($link, $sql1)){
-                        if (!empty($mobile2)) {
-                            $sql2= "UPDATE normal_hospital_telephone SET username='$username', TelephoneNo='$mobile2' WHERE username='$data2' AND flag='0'";
-                        mysqli_query($link, $sql1);
-                        }
-                    }else{echo "Telephone1 errors";}
-
-                    // Redirect to login page
-                header("location: index?edit=ok");  //index?edit=ok
-            }
-            else{
-                echo"something get wrong";
-            }
-            //close prepare statement
-            mysqli_stmt_close($stmt);
-         }
-
+        $hospital_name = $row["Name"];
+        $address = $row["Address"];
+        $district = $row["District"];
+        $chief_doctor = $row["Chief"];
+        $user_name = $row["UserName"];
+        $email = $row["Email"];
+        }
     }
-    else
-    {
-        $nic= $_SESSION["id-5"];
-        $sql = "SELECT * FROM normal_hospital WHERE UserName= '$nic'";
-
-        $result = mysqli_query($link, $sql);
-
-        if (mysqli_num_rows($result) > 0) {
-            // output data of each row
-            while($row = mysqli_fetch_assoc($result)) {
-    
-            $hospital_name = $row["Name"];
-            $address = $row["Address"];
-            $district = $row["District"];
-            $chief_doctor = $row["Chief"];
-            $user_name = $row["UserName"];
-            }
-        }
-        else {
-            echo "Something went wrong while loading...";
-        }
-        $sql2="SELECT TelephoneNo FROM normal_hospital WHERE username='$nic'";
-        $result2=mysqli_query($link,$sql1);
-        $row_count=mysqli_num_rows($result2);
-        //create array
-        $telephone_arr= array();
-        $telephone_arr[1]="";
-        $i=0;
-        while($rows=mysqli_fetch_assoc($result2))
-        {
-            $telephone_arr[i]=$rows["TelephoneNo"];
-            $i++;
-        }
-
-
-
-
+    else {
+        echo "Something went wrong while loading...";
     }
+    $sql2="SELECT TelephoneNo FROM normal_hospital_telephone WHERE username='$nic' ORDER BY Flag DESC";
+    $result2=mysqli_query($link,$sql2);
+    //create array
+    $telephone_arr= array();
+    $telephone_arr[1]="";
+    $i=0;
+    while($rows=mysqli_fetch_assoc($result2))
+    {
+        $telephone_arr[$i]=$rows["TelephoneNo"];
+        $i++;
+    }
+    $mobi1 = $telephone_arr[0];
+    $mobi2 = $telephone_arr[1];
+    $count=mysqli_num_rows($result2);
+    //echo "$count";
     //close the db connection
-    mysqli_close($link); 
+    mysqli_close($link);
+
 
 ?>
-
 <?php
+    $hos_err=$username_err=$dr_err=$email_err=$add_err=$dis_err=$mobile_err="";
+    if($_SERVER['REQUEST_METHOD']=="GET"){
+        if (isset($_GET['hos'])) {$hos_err=$_GET['hos'];}
+        if (isset($_GET['user'])) {$username_err=$_GET['user'];}
+        if (isset($_GET['dr'])) {$dr_err=$_GET['dr'];}
+        if (isset($_GET['email'])) {$email_err=$_GET['email'];}
+        if (isset($_GET['add'])) {$add_err=$_GET['add'];}
+        if (isset($_GET['dis'])) {$dis_err=$_GET['dis'];}
+        if (isset($_GET['mobile'])) {$mobile_err=$_GET['mobile'];}
 
+    }
+
+
+?>
+<?php
     include '../header.php';
-
 ?>
 
 <body>
-    
+
     <div class="container-row hospital">
         <?php require_once "../dashboard.php";?>
 
         <div class="main">
             <div class="topic">
 
-            <form action="" method="post"> <!--  echo htmlspecialchars($_SERVER["PHP_SELF"]); -->
+            <form action="../application/edit.php?cou=<?php echo $count; ?>&modi1=<?php echo $mobi1; ?>&mobi2=<?php echo $mobi2;?>" method="post"> <!--  echo htmlspecialchars($_SERVER["PHP_SELF"]); -->
                 <div class="form-row clearfix">
-                    <div class="form-group">
+                    <div class="form-group <?php echo (!empty($hos_err)) ? 'has-error' : ''; ?>">
                         <label>Hospital Name</label>
                         <input type="text" name="hosname" class="form-control" value="<?php echo $hospital_name; ?>">
                     </div>
-                    <div class="form-group">
+                    <div class="form-group <?php echo (!empty($add_err)) ? 'has-error' : ''; ?>">
                         <label>Address</label>
                         <input type="text" name="address" class="form-control" value="<?php echo $address; ?>">
                     </div>
-                    <div class="form-group">
+                    <div class="form-group <?php echo (!empty($dis_err)) ? 'has-error' : ''; ?>">
                         <label>District</label>
                         <input type="text" name="district" class="form-control" value="<?php echo $district; ?>"> <!-- **** -->
                     </div>
-                </div><br>
-        
+                </div>
+
                 <div class="form-row">
-                    <div class="form-group">
+                    <div class="form-group <?php echo (!empty($dr_err)) ? 'has-error' : ''; ?>">
                         <label>Chief Doctor Name</label>
-                        <input type="text" name="drname" value="<?php echo $chief_doctor; ?>">  
-                           
+                        <input type="text" name="drname" class="form-control"value="<?php echo $chief_doctor; ?>">
+
                     </div>
-                    <div class="form-group">
+                    <div class="form-group <?php echo (!empty($username_err)) ? 'has-error' : ''; ?>">
                         <label>User Name</label>
                         <input type="text" name="username" class="form-control" value="<?php echo $user_name; ?>">
                     </div>
-                    
-                </div><br>
+                    <div class="form-group <?php echo (!empty($email_err)) ? 'has-error' : ''; ?>">
+                        <label>Email Address</label>
+                        <input type="text" name="email" class="form-control" value="<?php echo $email; ?>">
+
+                    </div>
+
+                </div>
 
                 <div class="form-row">
-                    <div class="form-group">
+                    <div class="form-group <?php echo (!empty($mobile_err)) ? 'has-error' : ''; ?>">
                         <label>Telephone Number</label>
-                        <input type="number" name="mobile" class="form-control" value="<?php echo $telephone_arr[0]; ?>">
+                        <input type="number" name="mobile" class="form-control" value="<?php echo $mobi1; ?>">
                     </div>
                     <div class="form-group">
                         <label>Telephone Number</label>
-                        <input type="number" name="mobile2" class="form-control" value="<?php echo $telephone_arr[1]; ?>">
+                        <input type="number" name="mobile2" class="form-control" value="<?php echo $mobi2; ?>">
                     </div>
-                
-                    
-                </div>
 
-                <!--
-                    <div class="form-row clearfix">
-                    <div class="form-group">
-                        <label>Old Password</label>
-                        <input type="text" name="addline1" class="form-control">
-                    </div>
-                    <div class="form-group">
-                        <label>New Password</label>
-                        <input type="text" name="addline1" class="form-control">
-                    </div>
-                    <div class="form-group">
-                        <label>Confirm Password</label>
-                        <input type="text" name="addline2" class="form-control">
-                    </div>
-                    
+
                 </div>
-                -->
 
             <center>
                 <label><input type="submit" class="btn btn-primary" value="Submit" name="submit"></label>
@@ -252,11 +124,9 @@
             </center>
 
             </form>
-          
 
-            </div>
 
-               
         </div>
     </div>
+    <?php include '../../footer.php'; ?>
 </body>
